@@ -1,0 +1,4 @@
+
+logs/
+docker_logs/
+prometheus_data/

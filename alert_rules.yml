@@ -1,0 +1,76 @@
+groups:
+  - name: docker_alerts
+    rules:
+      - alert: ContainerDown
+        expr: container_down == 1
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "🚨 [{{ $labels.server_type }}] Docker container is down!"
+          description : |
+            The container {{ $labels.name }} went down on {{$labels.stopped_at}} UTC. 
+            **Last Logs** : {{$labels.logs}}          
+
+      - alert: ContainerUnhealthy
+        expr: docker_container_health_status{status="unhealthy"} == 1
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "🚨 [{{ $labels.server_type }}] Docker container is unhealthy!"
+          description : |
+            The container {{ $labels.name }} has been unhealthy since {{$labels.detected_at}} UTC. 
+            **Last Logs** : {{$labels.logs}}          
+
+      - alert: ContainerHighCPUUsage
+        expr: container_cpu_alert == 1
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "🚨 [{{ $labels.server_type }}] Docker container CPU Usage is high!"
+          description : |
+            The container {{ $labels.name }} has been utilizing more than 80% of CPU since {{$labels.detected_at}} UTC. 
+            **Last Logs** : {{$labels.logs}}          
+
+      - alert: ContainerHighMemoryUsage
+        expr: container_memory_alert == 1
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "🚨 [{{ $labels.server_type }}] Docker container Memory Usage is high!"
+          description : |
+            The container {{ $labels.name }}'s memory usage has exceeded 80% since {{$labels.detected_at}} UTC. 
+            **Last Logs** : {{$labels.logs}}       
+
+      - alert: HostMemoryUsage
+        expr: (sum(container_memory_usage_bytes{name!=""})/ sum(node_memory_MemTotal_bytes)) * 100 > 80
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "🚨 Host Memory Usage is high!"
+          description : |
+            Aggregated host memory usage has exceeded 80% for over 5 minutes.    
+
+      - alert: HostCPUUsage
+        expr: cpu_threshold == 1
+        for: 5m
+        labels:
+          severity: critical                    
+        annotations:
+          summary: "🚨 Host CPU Usage is high!"
+          description : |
+            Aggregated host CPU usage has exceeded 80% since {{$labels.detected_at}} UTC.              
+
+      # - alert: HostCPUUsage
+      #   expr: sum(rate(container_cpu_usage_seconds_total{name!=""}[1m])) * 100 / count(node_cpu_seconds_total{mode="user"}) > 80
+      #   for: 5m
+      #   labels:
+      #     severity: critical                    
+      #   annotations:
+      #     summary: "🚨 Host CPU Usage is high!"
+      #     description : |
+      #       Aggregated host CPU usage has been more than 80% for over 5 minutes.              

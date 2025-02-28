@@ -1,0 +1,109 @@
+services:
+  prometheus:
+    image: prom/prometheus
+    container_name: prometheus
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./alert_rules.yml:/etc/prometheus/alert_rules.yml  
+      - ./prometheus_data:/prometheus                 
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"   
+      - "--log.level=debug"
+      - "--log.format=json"            
+    ports:
+      - "9090:9090"
+    restart: always
+    networks:
+      - monitoring     
+
+  ngrep:
+    image: niden/ngrep  # Lightweight ngrep container
+    container_name: prometheus-ngrep
+    network_mode: "host"  # Required to capture network traffic on the host
+    command: ["sh", "-c", "> /logs/prometheus_http_traffic.log && ngrep -d any port 9090 >> /logs/prometheus_http_traffic.log"]
+    volumes:
+      - ./logs:/logs  # Mount logs to the host
+    restart: always
+    depends_on:
+      - prometheus         
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:latest
+    container_name: cadvisor
+    ports:
+      - "8081:8080"
+    volumes:
+      - "/:/rootfs:ro"
+      - "/var/run:/var/run:rw"
+      - "/sys:/sys:ro"
+      - "/var/lib/docker/:/var/lib/docker:ro"            
+    restart: always
+    networks:
+      - monitoring
+
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: node_exporter
+    volumes:
+      - "./docker_logs:/var/lib/node_exporter/textfile_collector"  # Store logs here
+    command:
+      - '--collector.textfile.directory=/var/lib/node_exporter/textfile_collector'
+    ports:
+      - "9100:9100"
+    restart: always
+    networks:
+      - monitoring
+
+  grafana:
+    image: grafana/grafana
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./grafana/provisioning/datasources:/etc/grafana/provisioning/datasources # Auto-add Prometheus as data source
+      - ./grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards # Auto-import cAdvisor dashboard
+      - ./grafana/dashboards:/var/lib/grafana/dashboards # Store dashboards locally
+    restart: always
+    networks:
+      - monitoring
+
+  alertmanager:
+    image: prom/alertmanager
+    container_name: alertmanager
+    volumes:
+      - ./alertmanager.yml:/etc/alertmanager/alertmanager.yml      
+    command:
+      - "--config.file=/etc/alertmanager/alertmanager.yml"
+    ports:
+      - "9093:9093"
+    restart: always
+    networks:
+      - monitoring
+
+  log-script:
+    build: ./log-script
+    container_name: log-script
+    volumes:
+      - "./docker_logs:/logs"
+      - "/var/run/docker.sock:/var/run/docker.sock"
+    entrypoint: ["/bin/sh", "-c", " > /logs/container_down.prom && > /logs/container_health.prom && > /logs/container_memory.prom && > /logs/container_cpu.prom && > /logs/cpu_threshold.prom && /logs.sh"]
+    networks:
+      - monitoring
+    depends_on:
+      - cadvisor
+    restart: always
+
+  alertmanager-discord:
+    image: benjojo/alertmanager-discord
+    container_name: alertmanager-discord
+    ports:
+      - "9094:9094"
+    environment:
+      DISCORD_WEBHOOK: "https://discordapp.com/api/webhooks/1337068579475951707/lWrCibnbxMQ_6Q3nPcrCdchpPOxl7pT0khqWRoENQeJ8S2O029H6ktYirwt-SYPln_hO"
+    restart: always
+    networks:
+      - monitoring
+
+networks:
+  monitoring:
+    driver: bridge

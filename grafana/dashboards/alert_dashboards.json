@@ -1,0 +1,83 @@
+{    
+    "id": null,
+    "uid": "prometheus-metrics",
+    "title": "Discord Alerts Metrics",
+    "timezone": "browser",
+    "schemaVersion": 16,
+    "version": 1,
+    "refresh": "5s",
+    "panels": [
+        {
+            "type": "graph",
+            "title": "Container Down",
+            "targets": [
+                {
+                    "expr": "container_down",  
+                    "legendFormat": "{{name}} went down at {{stopped_at}} UTC",
+                    "datasource": "Prometheus"
+                }
+            ],
+            "gridPos": { "x": 0, "y": 0, "w": 12, "h": 10 }
+        },
+        {
+            "type": "graph",
+            "title": "Container Unhealthy",
+            "targets": [
+                {
+                    "expr": "docker_container_health_status{status=\"unhealthy\"}",
+                    "legendFormat": "{{name}} became unhealthy at {{detected_at}} UTC",
+                    "datasource": "Prometheus"
+                }
+            ],
+            "gridPos": { "x": 12, "y": 0, "w": 12, "h": 10 }
+        },
+        {
+            "type": "graph",
+            "title": "Container On High CPU",
+            "targets": [
+                {
+                    "expr": "container_cpu_alert",
+                    "legendFormat": "{{name}}'s cpu usage crossed threshold at {{detected_at}} UTC",
+                    "datasource": "Prometheus"
+                }
+            ],
+            "gridPos": { "x": 0, "y": 5, "w": 12, "h": 10 }
+        },
+        {
+            "type": "graph",
+            "title": "Container On High Memory",
+            "targets": [
+                {
+                    "expr": "container_memory_alert",
+                    "legendFormat": "{{name}}'s memory utilization crossed threshold at {{detected_at}} UTC",
+                    "datasource": "Prometheus"
+                }
+            ],
+            "gridPos": { "x": 12, "y": 5, "w": 12, "h": 10 }
+        },
+        {
+            "type": "graph",
+            "title": "Host On High CPU",
+            "targets": [
+                {
+                    "expr": "cpu_threshold",
+                    "legendFormat": "Host's CPU utilization crossed threshold at {{detected_at}} UTC",
+                    "datasource": "Prometheus"
+                }
+            ],
+            "gridPos": { "x": 0, "y": 10, "w": 12, "h": 10 }
+        },
+        {
+            "type": "graph",
+            "title": "Host On High Memory",
+            "targets": [
+                {
+                    "expr": "(sum(container_memory_usage_bytes{name!=\"\"})/ sum(node_memory_MemTotal_bytes)) * 100 > 80",
+                    "legendFormat": "Host's memory utilization crossed threshold",
+                    "datasource": "Prometheus"
+                }
+            ],
+            "gridPos": { "x": 12, "y": 10, "w": 12, "h": 10 }
+        }        
+    ]        
+}
