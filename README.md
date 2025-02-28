@@ -2,7 +2,11 @@ The objective of implementing this docker compose stack is to setup monitoring o
 
 Container and Host metrics are captured by cAdvisor and node-exporter services respectively. 
 
-The metrics are then scraped by prometheus and compared against the pre-defined alert rules.
+The metrics are then scraped by prometheus and compared against a pre-defined set of alert rules from alert_rules.yml. The below alert conditions are defined:
+1) When a container is stopped
+2) When a container is unhealthy
+3) When a container's CPU or memory utilization has exceeded a threshold
+4) When the aggregated CPU or memory utilization of all the containers on the host has exceeded a threshold
 
 Prometheus then sends the alerts to alert-manager service which sends us notifications on a discord channel of our choice. 
 
@@ -11,7 +15,6 @@ Prometheus then sends the alerts to alert-manager service which sends us notific
 * Clone the prometheus-grafana-alerts repositrory.
 
 * Now, configure the correct discord webhook url path in the docker-compose.yml file. In order to get the webhook url, follow the below steps.    
-
     1) Click on **Edit Channel**
 
         ![settings_button](/images/image-1.png) 
