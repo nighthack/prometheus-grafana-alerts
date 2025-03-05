@@ -1,3 +1,7 @@
 logs/
 docker_logs/
 prometheus_data/
+grafana.ini
+log-script/cron.log
+log-script/entrypoint.sh
+cron-job/

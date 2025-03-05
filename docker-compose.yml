@@ -62,7 +62,18 @@ services:
     volumes:
       - ./grafana/provisioning/datasources:/etc/grafana/provisioning/datasources # Auto-add Prometheus as data source
       - ./grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards # Auto-import cAdvisor dashboard
-      - ./grafana/dashboards:/var/lib/grafana/dashboards # Store dashboards locally
+      - ./grafana/dashboards:/var/lib/grafana/dashboards # Store dashboards locally      
+    environment: ## envs to enable send forgot password mail
+      - GF_SMTP_ENABLED=true                              
+      - GF_SMTP_HOST=smtp.gmail.com:587                   
+      - GF_SMTP_USER={mailid}                ##replace the mail ID with the mail ID used to create user after logging in using admin credentials
+      - GF_SMTP_PASSWORD={password enclosed in "" if there are any special characters in it}
+      - GF_SMTP_SKIP_VERIFY=true                          
+      - GF_SMTP_FROM_ADDRESS=admin@grafana.localhost      
+      - GF_SMTP_FROM_NAME=Grafana                         
+      - GF_SMTP_EHLO_IDENTITY=dashboard.example.com       
+      - GF_SMTP_STARTTLS_POLICY=OpposrtunisticStartTLS    
+      - GF_SMTP_ENABLE_TRACING=false                      
     restart: always
     networks:
       - monitoring
@@ -86,7 +97,7 @@ services:
     volumes:
       - "./docker_logs:/logs"
       - "/var/run/docker.sock:/var/run/docker.sock"
-    entrypoint: ["/bin/sh", "-c", " > /logs/container_down.prom && > /logs/container_health.prom && > /logs/container_memory.prom && > /logs/container_cpu.prom && > /logs/cpu_threshold.prom && /logs.sh"]
+    entrypoint: ["/bin/sh", "-c", "/logs.sh"]
     networks:
       - monitoring
     depends_on:

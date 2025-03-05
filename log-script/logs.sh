@@ -1,28 +1,47 @@
 #!/bin/bash
 
-DOWN_FILE="/logs/container_down.prom"
-HEALTH_FILE="/logs/container_health.prom"
-CPU_ALERT_FILE="/logs/container_cpu.prom"
-MEMORY_ALERT_FILE="/logs/container_memory.prom"
-CPU_THRESHOLD_FILE="/logs/cpu_threshold.prom"
+#Declaring global variables
+DOWN_FILE=""
+HEALTH_FILE=""
+CPU_ALERT_FILE=""
+MEMORY_ALERT_FILE=""
+CPU_THRESHOLD_FILE=""
+today=""
 
-files=("$DOWN_FILE" "$HEALTH_FILE" "$CPU_ALERT_FILE" "$MEMORY_ALERT_FILE" "$CPU_THRESHOLD_FILE")
+create_log_files() {
+  find /logs/ -type f -mmin +0 -exec rm {} \; ##find /logs/ -type f -mtime +4 -exec rm {} \; ##replace the condition with this if you want to remove files that are 5 days old(test it before uncommenting)
+  
+  today=$(date +'%Y-%m-%d-%H:%M:%S')
+  DOWN_FILE="/logs/container_down_${today}.prom"
+  HEALTH_FILE="/logs/container_health_${today}.prom"
+  CPU_ALERT_FILE="/logs/container_cpu_${today}.prom"
+  MEMORY_ALERT_FILE="/logs/container_memory_${today}.prom"
+  CPU_THRESHOLD_FILE="/logs/cpu_threshold_${today}.prom"
 
-cleanup() {  
+  files=("$DOWN_FILE" "$HEALTH_FILE" "$CPU_ALERT_FILE" "$MEMORY_ALERT_FILE" "$CPU_THRESHOLD_FILE")
+
   for file in "${files[@]}"; do
-    > "$file"
-  done
+    touch "$file"
+
+    dir_path="$(dirname "$file")"
+      
+    mkdir -p "$dir_path" || sudo mkdir -p "$dir_path"
+      
+    chmod 777 "$dir_path" || sudo chmod 777 "$dir_path"
+  done  
 }
 
-trap cleanup EXIT
+create_log_files
 
-for file in "${files[@]}"; do
-  dir_path="$(dirname "$file")"
-    
-  mkdir -p "$dir_path" || sudo mkdir -p "$dir_path"
-    
-  chmod 777 "$dir_path" || sudo chmod 777 "$dir_path"
-done
+#loop to create and delete log files
+while true; do
+  create_log_files
+  sleep 60  # Wait for 1 minute before running again
+  # current_time=$(date +%s)
+  # next_midnight=$(date -d "tomorrow" +%s)
+  # sleep_duration=$((next_midnight - current_time))
+  # sleep $sleep_duration ##uncomment these 4 lines and remove the sleep 60 command to run this loop once every midnight
+done&
 
 IGNORE_CONTAINERS=("") # Add container names as space-separated-values to be ignored    
 
@@ -49,6 +68,13 @@ docker events --format '{{.Status}} {{.Actor.Attributes.name}}' | while read eve
       sed -i "/name=\"$container\"/d" "$DOWN_FILE"  
     fi 
   fi
+  # grep -o 'name="[^"]*"' "$DOWN_FILE" | sed 's/name="//;s/"//' | while read logged_container; do
+  #   if ! docker ps --filter "name=$logged_container" --format "{{.Names}}" | grep -q "$logged_container"; then
+  #     echo "Removing down log for recovered container: $logged_container"
+  #     sed -i "/name=\"$logged_container\"/d" "$DOWN_FILE"
+  #   fi
+  # done
+  # sleep 10
 done &
 
 while true; do
