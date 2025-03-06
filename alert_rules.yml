@@ -12,6 +12,17 @@ groups:
             The container {{ $labels.name }} went down on {{$labels.stopped_at}} UTC. 
             **Last Logs** : {{$labels.logs}}          
 
+      - alert: ContainerExited #new alert condition to keep track of containers that went down when the monitoring stack is down
+        expr: container_exited == 1 
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "🚨 [{{ $labels.server_type }}] Docker container is in exited state! Please check if it's expected or add it to the list of ignored containers"
+          description : |
+            The container {{ $labels.name }} detected exited on {{$labels.detected_at}} UTC. 
+            **Last Logs** : {{$labels.logs}}       
+
       - alert: ContainerUnhealthy
         expr: docker_container_health_status{status="unhealthy"} == 1
         for: 1m

@@ -72,7 +72,7 @@ services:
       - GF_SMTP_FROM_ADDRESS=admin@grafana.localhost      
       - GF_SMTP_FROM_NAME=Grafana                         
       - GF_SMTP_EHLO_IDENTITY=dashboard.example.com       
-      - GF_SMTP_STARTTLS_POLICY=OpposrtunisticStartTLS    
+      - GF_SMTP_STARTTLS_POLICY=OpportunisticStartTLS    
       - GF_SMTP_ENABLE_TRACING=false                      
     restart: always
     networks:

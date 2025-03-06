@@ -43,7 +43,7 @@ while true; do
   # sleep $sleep_duration ##uncomment these 4 lines and remove the sleep 60 command to run this loop once every midnight
 done&
 
-IGNORE_CONTAINERS=("") # Add container names as space-separated-values to be ignored    
+IGNORE_CONTAINERS=("") # Add container names enclosed in double quotes as space-separated-values to be ignored    
 
 docker events --format '{{.Status}} {{.Actor.Attributes.name}}' | while read event container; do
   if [[ "$event" == "stop" ]] && [[ ! " ${IGNORE_CONTAINERS[@]} " =~ " $container " ]]; then          
@@ -68,14 +68,29 @@ docker events --format '{{.Status}} {{.Actor.Attributes.name}}' | while read eve
       sed -i "/name=\"$container\"/d" "$DOWN_FILE"  
     fi 
   fi
-  # grep -o 'name="[^"]*"' "$DOWN_FILE" | sed 's/name="//;s/"//' | while read logged_container; do
-  #   if ! docker ps --filter "name=$logged_container" --format "{{.Names}}" | grep -q "$logged_container"; then
-  #     echo "Removing down log for recovered container: $logged_container"
-  #     sed -i "/name=\"$logged_container\"/d" "$DOWN_FILE"
-  #   fi
-  # done
-  # sleep 10
 done &
+
+while true; do 
+  grep -o 'name="[^"]*"' "$DOWN_FILE" | sed 's/name="//;s/"//' | while read logged_container; do #to keep track of containers that recovered while the monitoring stack is down
+    if docker ps --filter "status=running" --filter "name=$logged_container" --format "{{.Names}}" | grep -q "$logged_container"; then
+      echo "Removing down log for recovered container: $logged_container"
+      sed -i "/name=\"$logged_container\"/d" "$DOWN_FILE"
+    fi
+  done
+
+  docker ps --filter "status=exited" --format "{{.Names}}" | while read container; do #to keep track of containers that went down while monitoring stack is down
+    if ! grep -q "name=\"$container\"" "$DOWN_FILE" && [[ ! " ${IGNORE_CONTAINERS[@]} " =~ " $container " ]]; then      
+      echo "Detected exited container: $container"
+
+      TIMESTAMP=$(date +"%d-%b-%Y at %H:%M:%S")
+      LOGS=$(docker logs --tail 5 "$container" 2>&1 | sed ':a;N;$!ba;s/\n/\\n/g' | sed 's/"/\\"/g'| tr '\n' ' ')
+
+      echo "container_exited{name=\"$container\", status=\"unhealthy\", logs=\"$LOGS\", detected_at=\"$TIMESTAMP\"} 1" >> "$DOWN_FILE"
+      echo "Logs written to $DOWN_FILE"                
+    fi
+  done
+  sleep 10
+done&
 
 while true; do
   # To track unhealthy containers
