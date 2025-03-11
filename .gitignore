@@ -5,3 +5,4 @@ grafana.ini
 log-script/cron.log
 log-script/entrypoint.sh
 cron-job/
+storage_logs/

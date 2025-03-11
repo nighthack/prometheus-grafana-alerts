@@ -96,6 +96,7 @@ services:
     container_name: log-script
     volumes:
       - "./docker_logs:/logs"
+      - "./storage_logs:/storage_logs"
       - "/var/run/docker.sock:/var/run/docker.sock"
     entrypoint: ["/bin/sh", "-c", "/logs.sh"]
     networks:
